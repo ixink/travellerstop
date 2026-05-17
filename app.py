@@ -9,12 +9,27 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import re
 import mimetypes
 
+# Set absolute paths for production
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+# MIME Fix for Linux
 mimetypes.add_type('text/css', '.css')
 mimetypes.add_type('application/javascript', '.js')
 
 app = Flask(__name__, 
             static_folder=os.path.join(BASE_DIR, 'static'),
             template_folder=os.path.join(BASE_DIR, 'templates'))
+
+@app.after_request
+def add_header(response):
+    """
+    Force correct MIME types and disable caching for development/updates
+    """
+    if request.path.endswith('.css'):
+        response.headers['Content-Type'] = 'text/css'
+    elif request.path.endswith('.js'):
+        response.headers['Content-Type'] = 'application/javascript'
+    return response
 
 # Only use ProxyFix if actually behind a proxy (like Nginx). 
 if os.environ.get('USE_PROXY', 'false').lower() == 'true':
@@ -24,18 +39,18 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'traveller-stop-premium-
 app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
 
 # ===================== CONFIG =====================
-app.config['PROFILE_UPLOAD_FOLDER'] = 'static/uploads/profile_pics'
-app.config['ROOM_UPLOAD_FOLDER'] = 'static/uploads/rooms'
+app.config['PROFILE_UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'static/uploads/profile_pics')
+app.config['ROOM_UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'static/uploads/rooms')
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 
 os.makedirs(app.config['PROFILE_UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['ROOM_UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('data', exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, 'data'), exist_ok=True)
 
 # ===================== DATA STORAGE =====================
-DATA_DIR = 'data'
+DATA_DIR = os.path.join(BASE_DIR, 'data')
 USERS_FILE = os.path.join(DATA_DIR, 'users.json')
 ROOMS_FILE = os.path.join(DATA_DIR, 'rooms.json')
 BOOKINGS_FILE = os.path.join(DATA_DIR, 'bookings.json')
@@ -136,8 +151,6 @@ def save_uploaded_file(file, folder_type):
         return url_path
     except Exception as e:
         print(f"❌ Image save error: {e}")
-        if os.path.exists(full_path):
-            os.remove(full_path)
         return None
 
 # ===================== FIX OLD DATA =====================
@@ -561,7 +574,7 @@ def delete_room(room_id):
 
     if room.get('image_url') and not room['image_url'].startswith('http'):
         try:
-            file_path = os.path.join('static', room['image_url'])
+            file_path = os.path.join(BASE_DIR, 'static', room['image_url'])
             if os.path.exists(file_path):
                 os.remove(file_path)
         except:
