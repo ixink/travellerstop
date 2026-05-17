@@ -9,8 +9,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import re
 
 app = Flask(__name__)
-# Standard practice for production behind a proxy (Nginx/Heroku/etc)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+# Only use ProxyFix if actually behind a proxy (like Nginx). 
+# For direct IP access, we can keep it simple.
+if os.environ.get('USE_PROXY', 'false').lower() == 'true':
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'traveller-stop-premium-secret-key-2026-v6')
 app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
 
