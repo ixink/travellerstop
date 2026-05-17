@@ -854,7 +854,6 @@ def admin_coupons():
     return render_template('admin_coupons.html', coupons=coupons)
 
 if __name__ == '__main__':
-    # For local development only
-    # In production, use a proper WSGI server like Gunicorn or Waitress
+    # Binds to 0.0.0.0 to allow external access from IP 45.77.251.165
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
