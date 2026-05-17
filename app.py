@@ -7,10 +7,16 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 from werkzeug.middleware.proxy_fix import ProxyFix
 import re
+import mimetypes
 
-app = Flask(__name__)
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('application/javascript', '.js')
+
+app = Flask(__name__, 
+            static_folder=os.path.join(BASE_DIR, 'static'),
+            template_folder=os.path.join(BASE_DIR, 'templates'))
+
 # Only use ProxyFix if actually behind a proxy (like Nginx). 
-# For direct IP access, we can keep it simple.
 if os.environ.get('USE_PROXY', 'false').lower() == 'true':
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
